@@ -26,6 +26,45 @@ services:
       - traefik.http.routers.traefik-secure.service=api@internal
       - traefik.http.routers.traefik-secure.middlewares=user-auth@file
 
+  joplin:
+    image: joplin/server:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - APP_BASE_URL=${APP_BASE_URL}
+      - DB_CLIENT=pg
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=db
+    networks:
+      - proxy
+    depends_on:
+      - db
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.joplin.entrypoints=websecure
+      - traefik.http.routers.joplin.rule=Host(`joplin.example.com`)
+      - traefik.http.services.joplin.loadbalancer.server.port=22300
+
+  db:
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - APP_PORT=22300
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+    networks:
+      - proxy
+
 
   vaultwarden:
     image: vaultwarden/server:latest
